@@ -9,9 +9,6 @@ always_allow_html: true
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
-
-
 PULL UP A CHAIR BY THE HEARTH! Welcome to hearrthstone, the worlds first ever (to my knowledge) R package that pulls data straight from the Blizzard API for one of the most popular online card games in the world today. For those of you that don't know hearthstone is a card game developed by the creators of World of Warcraft and set in the world of Azeroth. The premise of the game is that heroes from the World of Warcraft universe play in their spare time at the tavern. Using this package you can explore how Hearthstone has changed over the last few years. Which tribes have risen to popularity with new expansions? Which classes have the best statted minions? What makes a legendary minion different from regular rare and common minions? These questions and more can be answered with the data you pull using the hearrthstone package!!  
 
 To get started with the package we’re gonna need to install the development version of the package from [Github](https://github.com/) with:
@@ -28,7 +25,7 @@ devtools::install_github("kabhatia7/hearrthstone")
 library(hearrthstone)
 ```
 
-Unlike with other API packages such as ggmap, the user does not need to specify an API key to access the package since the package automates these processes, so after you install and load the package you're all set to go! 
+Unlike with other API packages, the user does not need to specify an API key to access the package since the package automates these processes, so after you install and load the package you're all set to go! 
 
 
 ## GET cards
@@ -44,7 +41,8 @@ The `get_all_cards()` function with no arguments simply returns every card in th
 
 #### get_minions
 
-Minions are the most fun and interesting parts about Hearthstone, every card is so unique and using the `get_minions()` function you can easily query either all the minion cards in the game or set specific filters such as what class the card belongs to, its attack, health, and mana cost. See the documentation for extensive details on how to most effectively call the data you need. 
+Minions are the most fun and interesting parts about Hearthstone, every card is so unique and using the `get_minions()` function you can easily query either all the minion cards in the game or set specific filters such as what class the card belongs to, its attack, health, and mana cost. See the documentation for extensive details on how to most effectively call the data you need. There are functions simlar to this for both weapons and spells. See `get_weapons()` & `get_spells()`
+
 
 ```{r}
 minions <- get_minions() 
@@ -53,9 +51,10 @@ minions %>%
   head()
 ```
 
+
 Now that we got the functions that get us data, lets go over some functions that actually do something with it!
 
-
+Note: The functions above
 
 ### Plotting with hearrthstone
 
@@ -66,24 +65,20 @@ hearrthstone makes use of ggplot2 and a few add-on functions to provide visual p
 
 The `gganimate()` and `plotly()` package are both very powerful for data visualization. The hearrthstone package makes use of both of them in order to to articulate changes in cards over the many different expansions in Hearthstone. 
 
-Lets revisit the `plot_rarity_stats()` function that we went over in the last section. If we pass the logical operator `TRUE` in the function this outputs a nice gif that shows us which different traits have shifted since the start of the game.
+Lets go over the `plot_rarity_stats()` function that we went over in the last section. If we pass the logical operator `TRUE` in the function this outputs a nice gif that shows us which different traits have shifted since the start of the game. You can pass a specific card type and what you want to compare amongst the different rarities in this case. The `plot_class_stats()` function follows very similar arguments and returns a similar looking plot. Check out my shiny app linked at the bottom to interact with the different plotting functions. 
+
 
 ```{r}
-library(tidyverse)
-library(ggthemes)
-library(plotly)
-library(glue)
-library(gganimate)
-plot_class_stats(cards, comparison_var = "manaCost", cardType = "Weapon") 
+plot_rarity_stats(cards, comparison_var = "Text_length", cardType = "Spell", animate = TRUE)
 ```
 
+
+Something to note about the plotting functions is that the first argument is a data frame argument, so they are `%>%` friendly! If you leave the argument blank it will simply use the get data functions and generate the data for you. 
 
 
 ### Interactive Plots
 
-Unfortunately, this document outputs in the md format we can not display the interactive plotly plots. Fortunately, I have developed a Shiny application that allows a user to explore all of the plotly plots that this package. Feel free to check them out below, 
+Unfortunately, this document outputs in the an md format we can not display the interactive plotly plots. Fortunately, I have developed a Shiny application that allows a user to explore all of the plotly plots that this package. Feel free to check them out below, 
 
 
-
-
-Now that you've seen how I explored the wonderful and dangerous world of Hearthstone, its your turn! Check out my shiny app linked [here]() to use the functions I built to explore any burning questions you may have about the game!
+Now that you've seen how I explored the wonderful and dangerous world of Hearthstone, its your turn! Check out my shiny app linked [here](https://kabhatia7.shinyapps.io/hearrthstone_exploration/) to use the functions I built to explore any burning questions you may have around the hearth! 

@@ -7,7 +7,7 @@
 plot_class_stats(
   df_cards = NULL,
   comparison_var,
-  cardType = "minion",
+  cardType = "Minion",
   animate = FALSE
 )
 }
@@ -16,7 +16,7 @@ plot_class_stats(
 
 \item{comparison_var}{string variable argument. Selects a variable to compare the classes by using the get_* functions of the hearrthstone package, get_all_cards for details}
 
-\item{cardType}{string argument of what data you would like to compare the classes by, minions, spells, weapons, or all types. To compare all types pass NULL. Default set to minions.}
+\item{cardType}{string argument of what data you would like to compare the classes by, minions, spells, weapons, or all types. To compare all types pass NULL. Default set to "Minions".}
 
 \item{animate}{animate will allow return an animated plot changing the comparison by the various card sets in the game.}
 }

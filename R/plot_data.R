@@ -58,7 +58,14 @@ plot_class_stats <- function(df_cards = NULL, comparison_var, cardType = "Minion
  if(cardType == "minion" | is.null(cardType)){
    stopifnot(y_var_name == "Text Length" | y_var_name == "Manacost" | y_var_name == "Attack" | y_var_name == "Health")
  }
-  colours <- c("Priest"  = "gray60", "Hunter" = "forestgreen", "Rogue" = "khaki", "Mage" = "lightskyblue", "Demon Hunter" = "green3", "Druid" = "orange2", "Shaman" = "royalblue4", "Warlock" = "darkorchid", "Warrior" = "firebrick", "Paladin" = "palevioletred")
+
+ t <- list(
+   size = 18,
+   color = '#cc9900',
+   face = "bold")
+
+
+   colours <- c("Priest"  = "gray60", "Hunter" = "forestgreen", "Rogue" = "khaki", "Mage" = "lightskyblue", "Demon Hunter" = "green3", "Druid" = "orange2", "Shaman" = "royalblue4", "Warlock" = "darkorchid", "Warrior" = "firebrick", "Paladin" = "palevioletred")
 
   plot <- df_cards %>%
     filter(hero != "Neutral") %>%
@@ -67,14 +74,14 @@ plot_class_stats <- function(df_cards = NULL, comparison_var, cardType = "Minion
     geom_jitter(aes(text = sprintf("Name: %s <br> Class: %s <br> Mana Cost: %s <br> Card Set: %s", Name, hero,manaCost, CardSet)),position = position_jitter(seed = 2019, width = 0.2), size = 2, alpha = 0.25) +
     stat_summary(fun = mean, geom = "point", size = 5)+
     coord_flip() +
-    theme_tufte() +
+    theme_minimal() +
     theme(
       plot.title.position = "plot",
       legend.position = "none",
-      plot.title = element_text(color="#cc9900", size=16, face="bold"),
-      axis.title.x = element_text(color="#0099cc", size=14, face="bold"),
-      axis.title.y = element_text(color="#0099cc", size=14, face="italic"),
-      panel.grid = element_blank()
+      plot.title = element_text(color="#cc9900", size=14, face="bold"),
+      panel.grid = element_blank(),
+      axis.title = element_blank(),
+      axis.text = element_text(size = 12, color = "#0090ff")
     ) + scale_color_manual(values = colours)
 
 
@@ -86,13 +93,15 @@ plot_class_stats <- function(df_cards = NULL, comparison_var, cardType = "Minion
 
   } else{
     plot <- plot +
-      geom_line() +
-      ggtitle(glue("Summary of classes {y_var_name}")) +
-      labs(x = NULL, y = y_var_name)
-    plot <- ggplotly(plot, tooltip = "text")
+      geom_line()
+
+    plot <- ggplotly(plot, tooltip = "text") %>% layout(title =list(text = sprintf("<b>Summary of classes %s's %s </b>",cardType, y_var_name, x= 0.05, font = t),
+                                                                    xaxis = list(title = ""),
+                                                                    yaxis = list(title = "")))
   }
   return(plot)
 }
+
 
 
 #' Compare different card rarities to see if legendary and epic cards are really worth your hard earned dust
@@ -109,7 +118,7 @@ plot_class_stats <- function(df_cards = NULL, comparison_var, cardType = "Minion
 #' @importFrom glue glue
 #' @import gganimate
 #' @importFrom stringr str_replace str_to_title
-#' @importFrom plotly ggplotly
+#' @importFrom plotly ggplotly layout
 #' @import ggthemes
 #'
 #' @return Default outputs an interactive plotly object or a gif if the animate argument is passed as TRUE
@@ -135,12 +144,16 @@ if(is.null(df_cards)){
     filter(CardType == cardType)
 }
 
+  if(comparison_var == "manaCost"){
+    y_var_name <- "Mana Cost"
+  }
   y_var_name <-
     df_cards %>%
     select(!!sym(comparison_var)) %>%
     names() %>%
     str_replace("_", " ") %>%
     str_to_title()
+
 
   if(cardType == "spell"){
     stopifnot(y_var_name == "Text Length" | y_var_name == "Manacost")
@@ -159,6 +172,10 @@ if(!is.null(class)){
     filter(hero == class )
 }
 
+  t <- list(
+    size = 16,
+    color = '#cc9900',
+    face = "bold")
 
   plot <- df_cards %>%
     mutate(Rarity = as.factor(Rarity)) %>%
@@ -166,15 +183,16 @@ if(!is.null(class)){
     geom_jitter(aes(text = sprintf("Name: %s <br> Class: %s <br> Mana Cost: %s <br> Card Set: %s", Name, hero, manaCost, CardSet)), position = position_jitter(seed = 2019, width = 0.2), size = 2, alpha = 0.25) +
     stat_summary(fun = mean, geom = "point", size = 5)+
     coord_flip() +
-    theme_tufte() +
+    theme_minimal() +
     theme(
       plot.title.position = "plot",
       legend.position = "none",
-      plot.title = element_text(color="#cc9900", size=16, face="bold"),
-      axis.title.x = element_text(color="#0099cc", size=14, face="bold"),
-      axis.title.y = element_text(color="#0099cc", size=14, face="italic"),
-      panel.grid = element_blank()
-    ) + scale_color_manual(values = colours)
+      plot.title = element_text(color="#cc9900", size=14, face="bold"),
+      panel.grid = element_blank(),
+      axis.title = element_blank(),
+      axis.text = element_text(size = 12, color = "#0090ff")
+    ) +
+    scale_color_manual(values = colours)
 
   if(animate){
     plot <- plot + ggtitle(paste(glue("Summary of {y_var_name} by Rarity"),"by {closest_state}")) +
@@ -185,9 +203,13 @@ if(!is.null(class)){
   } else{
     plot <- plot +
       geom_line() +
-      ggtitle(glue("Summary of classes {y_var_name} by Rarity")) +
       labs(x = NULL, y = y_var_name)
-    plot <- ggplotly(plot, tooltip = "text")
+    plot <- ggplotly(plot, tooltip = "text") %>% layout(title =
+                                                          list(
+                                                            text = sprintf("<b>Summary of %s's %s by rarity </b>",cardType, y_var_name, x= 0.05, font = t),
+                                                            xaxis = list(title = ""),
+                                                            yaxis = list(title = "")))
+
   }
 
   return(plot)
@@ -241,9 +263,7 @@ changes_over_expac <- function(df_cards = get_all_cards(), classifier = "MinionT
 
 
   t <- list(
-    family = "sans serif",
     size = 18,
-    color = '#cc9900',
     face = "bold")
 
 
@@ -257,7 +277,7 @@ changes_over_expac <- function(df_cards = get_all_cards(), classifier = "MinionT
     add_bars() %>%
     hide_legend() %>%
     animation_opts(frame = 1000, transition = 0, redraw = TRUE) %>%
-    layout(title =list(text = sprintf("<b>Distribution of %s released by Expansion</b>",str_to_title(classifier)), x= 0, font = t),
+    layout(title =list(text = sprintf("<b>Distribution of %s released by Expansion</b>",str_to_title(classifier)), x= 0.05, font = t),
            xaxis = list(title = ""),
            yaxis = list(title = ""))
 return(plot)
