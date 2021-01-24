@@ -1,0 +1,177 @@
+---
+title: "Test"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(rvest)
+library(httr)
+library(jsonlite)
+```
+
+```{r}
+decklinks <- c('KQyAlP005Le0AMYQ3HHGXd',
+               'DoWnmjovGhROXQb5LPBTWb',
+               'KkQgoSmtWjMyuyZb3eNIge',
+               'lqzucqk1xeZITWsAesx94c',
+               'M9DRB9c6SsBjd9gqo0EUuc',
+               'UCGbONNBeZEVHf9BD22Nzf'
+               )
+get_hsreplay_decks('KQyAlP005Le0AMYQ3HHGXd')$deckcode %>% get_decks()
+```
+```{r}
+decklinks %>% 
+  purrr::map_dfr(~get_hsreplay_decks(.x))
+
+```
+
+
+```{r}
+hlhunter <- tibble( name = read_html('https://hsreplay.net/decks/KQyAlP005Le0AMYQ3HHGXd/') %>% 
+  html_nodes('head') %>% 
+  html_nodes(xpath = '//meta[@property = "x-hearthstone:deck"]') %>% 
+  html_attr('content'),
+  deckcode = read_html('https://hsreplay.net/decks/KQyAlP005Le0AMYQ3HHGXd/') %>% 
+  html_nodes('head') %>% 
+  html_nodes(xpath = '//meta[@property = "x-hearthstone:deck:deckstring"]') %>% 
+  html_attr('content'))
+hlhunter$deckcode %>% get_decks() %>% summarize(mean(manaCost))
+```
+
+```{r}
+purepaladin <- list(name = read_html('https://hsreplay.net/decks/DoWnmjovGhROXQb5LPBTWb/') %>% 
+  html_nodes('head') %>% 
+  html_nodes(xpath = '//meta[@property = "x-hearthstone:deck"]') %>% 
+  html_attr('content'),
+  deckcode = read_html('https://hsreplay.net/decks/DoWnmjovGhROXQb5LPBTWb/') %>% 
+  html_nodes('head') %>% 
+  html_nodes(xpath = '//meta[@property = "x-hearthstone:deck:deckstring"]') %>% 
+  html_attr('content'))
+```
+
+```{r}
+facehunter <-  list(name = read_html('https://hsreplay.net/decks/lqzucqk1xeZITWsAesx94c/') %>% 
+  html_nodes('head') %>% 
+  html_nodes(xpath = '//meta[@property = "x-hearthstone:deck"]') %>% 
+  html_attr('content'),
+  deckcode = read_html('https://hsreplay.net/decks/lqzucqk1xeZITWsAesx94c/') %>% 
+  html_nodes('head') %>% 
+  html_nodes(xpath = '//meta[@property = "x-hearthstone:deck:deckstring"]') %>% 
+  html_attr('content'))
+```
+  
+
+```{r}
+zoo <- list(name = read_html('https://hsreplay.net/decks/KkQgoSmtWjMyuyZb3eNIge/') %>% 
+  html_nodes('head') %>% 
+  html_nodes(xpath = '//meta[@property = "x-hearthstone:deck"]') %>% 
+  html_attr('content'),
+  deckcode = read_html('https://hsreplay.net/decks/KkQgoSmtWjMyuyZb3eNIge/') %>% 
+  html_nodes('head') %>% 
+  html_nodes(xpath = '//meta[@property = "x-hearthstone:deck:deckstring"]') %>% 
+  html_attr('content'))
+  
+```
+
+```{r}
+totem <- list(name = read_html('https://hsreplay.net/decks/tceFtIVEZiLZagNYSoDIcb/') %>% 
+  html_nodes('head') %>% 
+  html_nodes(xpath = '//meta[@property = "x-hearthstone:deck"]') %>% 
+  html_attr('content'),
+  deckcode = read_html('https://hsreplay.net/decks/tceFtIVEZiLZagNYSoDIcb/') %>% 
+  html_nodes('head') %>% 
+  html_nodes(xpath = '//meta[@property = "x-hearthstone:deck:deckstring"]') %>% 
+  html_attr('content'))
+  
+```
+
+
+```{r}
+stealthrogue <- list(name = read_html('https://hsreplay.net/decks/SRYX8SQiExnSSQ17zo8hOb/') %>% 
+  html_nodes('head') %>% 
+  html_nodes(xpath = '//meta[@property = "x-hearthstone:deck"]') %>% 
+  html_attr('content'),
+  deckcode = read_html('https://hsreplay.net/decks/SRYX8SQiExnSSQ17zo8hOb/') %>% 
+  html_nodes('head') %>% 
+  html_nodes(xpath = '//meta[@property = "x-hearthstone:deck:deckstring"]') %>% 
+  html_attr('content'))
+```
+
+
+```{r}
+secrethunter <- list(name = read_html('https://hsreplay.net/decks/6AvIri5EaK8ACTdO2LwsJg/') %>% 
+  html_nodes('head') %>% 
+  html_nodes(xpath = '//meta[@property = "x-hearthstone:deck"]') %>% 
+  html_attr('content'),
+  deckcode = read_html('https://hsreplay.net/decks/6AvIri5EaK8ACTdO2LwsJg/') %>% 
+  html_nodes('head') %>% 
+  html_nodes(xpath = '//meta[@property = "x-hearthstone:deck:deckstring"]') %>% 
+  html_attr('content'))
+```
+
+```{r}
+bigwarrior <- list(name = read_html('https://hsreplay.net/decks/UCGbONNBeZEVHf9BD22Nzf/') %>% 
+  html_nodes('head') %>% 
+  html_nodes(xpath = '//meta[@property = "x-hearthstone:deck"]') %>% 
+  html_attr('content'),
+  deckcode = read_html('https://hsreplay.net/decks/UCGbONNBeZEVHf9BD22Nzf/') %>% 
+  html_nodes('head') %>% 
+  html_nodes(xpath = '//meta[@property = "x-hearthstone:deck:deckstring"]') %>% 
+  html_attr('content'))
+```
+
+```{r}
+ whirlkick <- list(name = read_html('https://hsreplay.net/decks/aQWPYtbVQUbZM7bSq3cRKg/') %>% 
+  html_nodes('head') %>% 
+  html_nodes(xpath = '//meta[@property = "x-hearthstone:deck"]') %>% 
+  html_attr('content'),
+  deckcode = read_html('https://hsreplay.net/decks/aQWPYtbVQUbZM7bSq3cRKg/') %>% 
+  html_nodes('head') %>% 
+  html_nodes(xpath = '//meta[@property = "x-hearthstone:deck:deckstring"]') %>% 
+  html_attr('content'))
+```
+
+```{r}
+ramppaladin <- list(name = read_html('https://hsreplay.net/decks/M9DRB9c6SsBjd9gqo0EUuc/') %>% 
+  html_nodes('head') %>% 
+  html_nodes(xpath = '//meta[@property = "x-hearthstone:deck"]') %>% 
+  html_attr('content'),
+  deckcode = read_html('https://hsreplay.net/decks/M9DRB9c6SsBjd9gqo0EUuc/') %>% 
+  html_nodes('head') %>% 
+  html_nodes(xpath = '//meta[@property = "x-hearthstone:deck:deckstring"]') %>% 
+  html_attr('content'))
+```
+
+```{r}
+aggrodh <- list(name = read_html('https://hsreplay.net/decks/M9DRB9c6SsBjd9gqo0EUuc/') %>% 
+  html_nodes('head') %>% 
+  html_nodes(xpath = '//meta[@property = "x-hearthstone:deck"]') %>% 
+  html_attr('content'),
+  deckcode = read_html('https://hsreplay.net/decks/M9DRB9c6SsBjd9gqo0EUuc/') %>% 
+  html_nodes('head') %>% 
+  html_nodes(xpath = '//meta[@property = "x-hearthstone:deck:deckstring"]') %>% 
+  html_attr('content'))
+```
+
+```{r}
+read_html('https://hsreplay.net/meta/') %>% 
+    html_nodes('div')
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+

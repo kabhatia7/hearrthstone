@@ -317,6 +317,67 @@ get_weapons <- function(class = NULL, mana = NULL, attack = NULL, durability = N
   return(df_cards)
 }
 
+#'
+#' @param deckcode a string of characters that identifies a deck in the game of hearthstone
+#'
+#'
+#' @importFrom httr GET
+#' @import jsonlite
+#' @importFrom dplyr select left_join rename mutate bind_rows filter
+#' @importFrom tibble tibble
+#' @import stringr
+#'
+#' @return returns a data frame with Name of card, Class, Type, Rarity, what set it was apart of, and length of card text
+#'
+#'
+#' @export
+get_decks <- function(deckcode){
+  my_token <- token_auth()
+  search_params <- list()
+  search_params$code <- deckcode
+
+  metadata_deck <- GET(paste0("https://us.api.blizzard.com/hearthstone/deck?locale=en_US&access_token=",my_token),
+      query = search_params)
+  deck <- fromJSON(rawToChar((metadata_deck$content)))
+
+  return(deck)
+}
+
+
+#' @param deckcode a string of characters that identifies a deck in the game of hearthstone
+#'
+#'
+#' @importFrom httr GET
+#' @import jsonlite
+#' @importFrom dplyr select left_join rename mutate bind_rows filter
+#' @importFrom tibble tibble
+#' @import stringr
+#'
+#' @return returns a data frame with Name of card, Class, Type, Rarity, what set it was apart of, and length of card text
+#'
+#'
+#' @export
+get_hsreplay_decks <- function(websitecode){
+
+  hsreplayurl <- read_html(paste0('https://hsreplay.net/decks/',websitecode)) %>%
+    html_nodes('head')
+
+  hsreplayinfo <- tibble(name = hsreplayurl %>%
+                           html_nodes(xpath = '//meta[@property = "x-hearthstone:deck"]') %>%
+                           html_attr('content'),
+                         deckcode = hsreplayurl %>%
+                           html_nodes(xpath = '//meta[@property = "x-hearthstone:deck:deckstring"]') %>%
+                           html_attr('content'))
+
+  df_deck <- get_decks(hsreplayinfo$deckcode)
+  df_deck <- hsreplayinfo %>%
+    mutate(Class = as.factor(df_deck$class$name), ManaCurve = mean(df_deck$cards$manaCost))
+
+
+
+  return(df_deck)
+}
+
 #' Regenerate Token
 #'
 #'
