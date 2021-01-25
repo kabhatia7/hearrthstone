@@ -327,7 +327,7 @@ get_weapons <- function(class = NULL, mana = NULL, attack = NULL, durability = N
 #' @importFrom tibble tibble
 #' @import stringr
 #'
-#' @return returns a data frame with Name of card, Class, Type, Rarity, what set it was apart of, and length of card text
+#' @return returns a data frame with with all the cards for a given
 #'
 #'
 #' @export
@@ -344,13 +344,12 @@ get_decks <- function(deckcode){
 }
 
 
-#' @param deckcode a string of characters that identifies a deck in the game of hearthstone
+#' @param websitecode a string of characters that identifies a deck in the game of hearthstone
 #'
 #'
-#' @importFrom httr GET
+#' @importFrom rvest html_nodes html_attr
 #' @import jsonlite
 #' @importFrom dplyr select left_join rename mutate bind_rows filter
-#' @importFrom tibble tibble
 #' @import stringr
 #'
 #' @return returns a data frame with Name of card, Class, Type, Rarity, what set it was apart of, and length of card text

@@ -12,18 +12,23 @@ library(tidyverse)
 library(rvest)
 library(httr)
 library(jsonlite)
+librr
 ```
 
 ```{r}
 decklinks <- c('KQyAlP005Le0AMYQ3HHGXd',
-               'DoWnmjovGhROXQb5LPBTWb',
-               'KkQgoSmtWjMyuyZb3eNIge',
                'lqzucqk1xeZITWsAesx94c',
-               'M9DRB9c6SsBjd9gqo0EUuc',
-               'UCGbONNBeZEVHf9BD22Nzf'
+               'Zqhtb1uqkxONF0mnyByq5',
+               'DoWnmjovGhROXQb5LPBTWb',
+               'TdDvginuZA6w8WRVovljzf',
+               'SiPG9EauLQUSFyMlb5RiDf'
                )
-get_hsreplay_decks('KQyAlP005Le0AMYQ3HHGXd')$deckcode %>% get_decks()
+meta_deck <- get_hsreplay_decks('KQyAlP005Le0AMYQ3HHGXd')$deckcode %>% 
+  get_decks() 
+meta_deck$cards %>% select(name,manaCost,classId)
 ```
+
+
 ```{r}
 decklinks %>% 
   purrr::map_dfr(~get_hsreplay_decks(.x))
