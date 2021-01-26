@@ -3,6 +3,8 @@
 export("%>%")
 export(changes_over_expac)
 export(get_all_cards)
+export(get_decks)
+export(get_hsreplay_decks)
 export(get_minions)
 export(get_spells)
 export(get_weapons)

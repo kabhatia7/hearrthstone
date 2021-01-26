@@ -317,6 +317,7 @@ get_weapons <- function(class = NULL, mana = NULL, attack = NULL, durability = N
   return(df_cards)
 }
 
+#' Title here
 #'
 #' @param deckcode a string of characters that identifies a deck in the game of hearthstone
 #'
@@ -343,7 +344,8 @@ get_decks <- function(deckcode){
   return(deck)
 }
 
-
+#' Title here
+#'
 #' @param deckcode a string of characters that identifies a deck in the game of hearthstone
 #'
 #'

@@ -12,6 +12,7 @@ library(tidyverse)
 library(rvest)
 library(httr)
 library(jsonlite)
+library(hearrthstone)
 ```
 
 ```{r}
