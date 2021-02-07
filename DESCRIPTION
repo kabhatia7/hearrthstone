@@ -29,4 +29,5 @@ Imports:
     tibble,
     RCurl,
     ggthemes,
-    glue
+    glue,
+    rvest

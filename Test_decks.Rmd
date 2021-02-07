@@ -31,7 +31,12 @@ links <- read_html(paste(pages, collapse = '')) %>%
   html_nodes('a.deck-tile') %>% 
   html_attr('href')
 meta <- map_dfr(stringr::str_remove(links,"/decks/"), ~get_hsreplay_decks(.x))
+```
 
+
+```{r}
+decklinks %>% 
+  purrr::map_dfr(~get_hsreplay_decks(.x))
 remDr$close()
 ```
 
