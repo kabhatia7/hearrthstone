@@ -21,20 +21,25 @@ Retrieve current meta data from Hsreplay.net to use as training data for the mod
 ```{r}
 rd <- rsDriver(browser="firefox", port= 1093L, verbose=F)
 remDr <- rd[["client"]]
-remDr$navigate("https://www.hsreplay.net/meta")
-Sys.sleep(2)
-html <- remDr$getPageSource()[[1]]
-
-links <- read_html(html) %>% 
-  html_nodes('.btn-deck') %>% 
+pages <- c()
+for(i in 1:3){
+remDr$navigate(paste0("https://hsreplay.net/decks/#minGames=1000&page=",i))
+Sys.sleep(1)
+pages[i] <- remDr$getPageSource()[[1]]
+}
+links <- read_html(paste(pages, collapse = '')) %>% 
+  html_nodes('a.deck-tile') %>% 
   html_attr('href')
 meta <- map_dfr(stringr::str_remove(links,"/decks/"), ~get_hsreplay_decks(.x))
+
+remDr$close()
 ```
+
 
 ```{r}
-df_meta_dummy <- 
+df_decks_dummy <- 
   map_dfr(1:nrow(meta),~get_dummys(meta$deckcode[.x],meta$name[.x])) %>% 
   replace(is.na(.),0) 
-
-get_dummys("AAECAZ8FCIetA/y4A5XNA4/OA8PRA5vYA/zeA73hAwunCJupA/u4A/O7A/7RA4fUA/7bA/neA/TfA5HkA5LkAwA="	,"Ramp Paladin")
+  
 ```
+
