@@ -317,6 +317,8 @@ get_weapons <- function(class = NULL, mana = NULL, attack = NULL, durability = N
   return(df_cards)
 }
 
+
+#' Returns data frame of cards in a deck using given in game generated deck code
 #'
 #' @param deckcode a string of characters that identifies a deck in the game of hearthstone
 #'
@@ -343,6 +345,10 @@ get_decks <- function(deckcode){
   return(deck)
 }
 
+
+
+#' Uses HSreplay site code to give a data frame of deck information
+#'
 
 #' @param websitecode a string of characters that identifies a deck in the game of hearthstone
 #'
@@ -376,6 +382,39 @@ get_hsreplay_decks <- function(websitecode){
 
   return(df_deck)
 }
+
+
+
+#'create dummy dataframe for decks to be used for classification
+#'
+#' @param websitecode a string of characters that identifies a deck in the game of hearthstone
+#'
+#'
+#' @importFrom rvest html_nodes html_attr
+#' @import jsonlite
+#' @importFrom dplyr select left_join rename mutate bind_rows filter
+#' @import stringr
+#'
+#' @return returns a dummy data frame with X columns based on unique copies of cards in the deck plus the mana cost and deck name
+#'
+#'
+#' @export
+get_dummys <- function(deckcode, deckarchetype){
+
+  meta_deck <- deckcode %>% get_decks()
+
+  deck <- meta_deck$cards %>%
+    select(name) %>%
+    mutate(deckname = deckarchetype) %>%
+    fastDummies::dummy_columns('name', remove_selected_columns = TRUE) %>%
+    group_by(deckname) %>%
+    summarise(across(everything(),list(sum))) %>%
+    mutate(Class = meta_deck$class$name, manaCurve = mean(meta_deck$cards$manaCost)) %>%
+    relocate(Class, .after = deckname) %>%
+    relocate(manaCurve, .after = Class)
+  return(deck)
+}
+
 
 #' Regenerate Token
 #'
