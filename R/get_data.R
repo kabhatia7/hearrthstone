@@ -389,14 +389,13 @@ get_hsreplay_decks <- function(websitecode){
 #'
 #' @param websitecode a string of characters that identifies a deck in the game of hearthstone
 #'
+#' @return returns a dummy data frame with X columns based on unique copies of cards in the deck plus the mana cost and deck name
+#'
 #'
 #' @importFrom rvest html_nodes html_attr
 #' @import jsonlite
 #' @importFrom dplyr select left_join rename mutate bind_rows filter
 #' @import stringr
-#'
-#' @return returns a dummy data frame with X columns based on unique copies of cards in the deck plus the mana cost and deck name
-#'
 #'
 #' @export
 get_dummys <- function(deckcode, deckarchetype){

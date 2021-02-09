@@ -2,7 +2,7 @@
 % Please edit documentation in R/get_data.R
 \name{get_decks}
 \alias{get_decks}
-\title{Title here}
+\title{Returns data frame of cards in a deck using given in game generated deck code}
 \usage{
 get_decks(deckcode)
 }
@@ -10,8 +10,8 @@ get_decks(deckcode)
 \item{deckcode}{a string of characters that identifies a deck in the game of hearthstone}
 }
 \value{
-returns a data frame with Name of card, Class, Type, Rarity, what set it was apart of, and length of card text
+returns a data frame with with all the cards for a given
 }
 \description{
-Title here
+Returns data frame of cards in a deck using given in game generated deck code
 }
