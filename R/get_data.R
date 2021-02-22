@@ -394,6 +394,7 @@ get_hsreplay_decks <- function(websitecode){
 #' @import jsonlite
 #' @importFrom dplyr select left_join rename mutate bind_rows filter
 #' @import stringr
+#' @import fastDummies
 #'
 #' @return returns a dummy data frame with X columns based on unique copies of cards in the deck plus the mana cost and deck name
 #'
