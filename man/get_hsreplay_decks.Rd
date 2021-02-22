@@ -2,16 +2,16 @@
 % Please edit documentation in R/get_data.R
 \name{get_hsreplay_decks}
 \alias{get_hsreplay_decks}
-\title{Title here}
+\title{Uses HSreplay site code to give a data frame of deck information}
 \usage{
 get_hsreplay_decks(websitecode)
 }
 \arguments{
-\item{deckcode}{a string of characters that identifies a deck in the game of hearthstone}
+\item{websitecode}{a string of characters that identifies a deck in the game of hearthstone}
 }
 \value{
 returns a data frame with Name of card, Class, Type, Rarity, what set it was apart of, and length of card text
 }
 \description{
-Title here
+Uses HSreplay site code to give a data frame of deck information
 }

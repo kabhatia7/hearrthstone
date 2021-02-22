@@ -26,11 +26,11 @@ rd <- rsDriver(browser="firefox", port= sample(1000:9999,1), verbose=F)
 remDr <- rd[["client"]]
 pages <- c()
 #save html for n pages
-page_n <- 10
+page_n <- 52  #52, 900 deck codes
 for(i in 1:page_n){
-remDr$navigate(paste0("https://hsreplay.net/decks/#page=",i))
-Sys.sleep(1)
-pages[i] <- remDr$getPageSource()[[1]]
+  remDr$navigate(paste0("https://hsreplay.net/decks/#page=",i))
+  Sys.sleep(1)
+  pages[i] <- remDr$getPageSource()[[1]]
 }
 #collapse the htmls for the different pages and extract all the deck links
 links <- read_html(paste(pages, collapse = '')) %>% 
@@ -40,6 +40,11 @@ links <- read_html(paste(pages, collapse = '')) %>%
 decks <- map_dfr(stringr::str_remove(links,"/decks/"), ~get_hsreplay_decks(.x))
 remDr$close()
 ```
+
+```{r}
+write_csv(decks, here("dev" ,"data", "df_decks.csv"))
+```
+
 
 
 ```{r}
@@ -58,4 +63,9 @@ deckcodes <- MT %>% select(Deck,Class,`Deck Code`) %>% distinct(`Deck Code`)
 future_imap_dfr(1:nrow(deckcodes),~get_dummys(deckcodes[[1]][.x],.x)) %>% 
   replace(is.na(.),0) 
 ```
+
+```{r}
+write_csv(df_decks_dummy, here("dev" ,"data", "df_decks_dummy.csv"))
+```
+
 

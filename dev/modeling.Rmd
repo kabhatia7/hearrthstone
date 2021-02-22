@@ -1,0 +1,95 @@
+---
+title: "Modeling Hearthstone Decks"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(here)
+```
+
+```{r}
+dat <- read_csv(here("dev", "data", "df_decks_dummy.csv"))
+
+card_names <- names(dat)[-c(1,2)]
+```
+
+
+```{r}
+cards_matrix <- dat %>% 
+  select(contains("name_")) %>%
+  mutate_all(~replace_na(., 0)) %>%
+  as.matrix()
+
+my_pcs <- prcomp(cards_matrix)
+
+
+pc_df <- my_pcs$x %>%
+  as_tibble() %>%
+  mutate(
+    Class = dat$Class
+  ) 
+
+```
+
+
+```{r}
+
+pc_df %>%
+  ggplot() +
+    geom_boxplot(aes(x = Class, y = PC3))
+
+enframe(my_pcs$rotation[,"PC3"]) %>%
+  arrange(desc(value))
+
+enframe(my_pcs$rotation[,"PC3"]) %>%
+  arrange(value)
+```
+
+
+```{r}
+
+dat_split <- dat %>%
+  select(-Class) %>%
+  mutate(
+    Class = as_factor(deckname)
+  ) %>%
+  initial_split()
+
+dat_train <- training(dat_split)
+dat_test <- testing(dat_split)
+```
+
+
+
+```{r}
+ctree <- decision_tree() %>%
+  set_engine("rpart") %>%
+  set_mode("classification")
+```
+
+
+```{r}
+tree_fit <- ctree %>%
+  fit(Class ~ ., dat_train)
+```
+
+```{r}
+my_preds <- tree_fit %>%
+  predict(new_data = dat_test) %>% 
+  mutate(true_class = dat_test$Class) 
+
+
+my_preds %>% 
+  accuracy(truth = true_class, 
+            estimate = .pred_class)
+
+my_preds
+```
+
+
