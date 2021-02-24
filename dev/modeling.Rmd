@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(tidymodels)
 library(here)
+library(hearrthstone)
 ```
 
 ```{r}
@@ -19,6 +20,10 @@ dat <- read_csv(here("dev", "data", "df_decks_dummy.csv"))
 card_names <- names(dat)[-c(1,2)]
 ```
 
+```{r}
+dat <- dat %>%
+    mutate_all(~replace_na(., 0)) 
+```
 
 ```{r}
 cards_matrix <- dat %>% 
@@ -26,70 +31,388 @@ cards_matrix <- dat %>%
   mutate_all(~replace_na(., 0)) %>%
   as.matrix()
 
+druid_matrix <- dat %>% 
+  filter(Class == "Druid") %>% 
+  select(contains("name_")) %>%
+  mutate_all(~replace_na(., 0)) %>%
+  as.matrix()
+
+dh_matrix <- dat %>% 
+  filter(Class == "Demon Hunter") %>% 
+  select(contains("name_")) %>%
+  mutate_all(~replace_na(., 0)) %>%
+  as.matrix()
+
+mage_matrix <- dat %>% 
+  filter(Class == "Mage") %>% 
+  select(contains("name_")) %>%
+  mutate_all(~replace_na(., 0)) %>%
+  as.matrix()
+
+priest_matrix <- dat %>% 
+  filter(Class == "Priest") %>% 
+  select(contains("name_")) %>%
+  mutate_all(~replace_na(., 0)) %>%
+  as.matrix()
+
+paladin_matrix <- dat %>% 
+  filter(Class == "Paladin") %>% 
+  select(contains("name_")) %>%
+  mutate_all(~replace_na(., 0)) %>%
+  as.matrix()
+
+warrior_matrix <- dat %>% 
+  filter(Class == "Warrior") %>% 
+  select(contains("name_")) %>%
+  mutate_all(~replace_na(., 0)) %>%
+  as.matrix()
+
+shaman_matrix <- dat %>% 
+  filter(Class == "Shaman") %>% 
+  select(contains("name_")) %>%
+  mutate_all(~replace_na(., 0)) %>%
+  as.matrix()
+
+rogue_matrix <- dat %>% 
+  filter(Class == "Rogue") %>% 
+  select(contains("name_")) %>%
+  mutate_all(~replace_na(., 0)) %>%
+  as.matrix()
+  
+warlock_matrix <- dat %>% 
+  filter(Class == "Warlock") %>% 
+  select(contains("name_")) %>%
+  mutate_all(~replace_na(., 0)) %>%
+  as.matrix()
+
+hunter_matrix <- dat %>% 
+  filter(Class == "Hunter") %>% 
+  select(contains("name_")) %>%
+  mutate_all(~replace_na(., 0)) %>%
+  as.matrix()
+
 my_pcs <- prcomp(cards_matrix)
 
+druid_pcs <-  prcomp(druid_matrix)
+
+dh_pcs <-  prcomp(dh_matrix)
+
+mage_pcs <-  prcomp(mage_matrix)
+
+warrior_pcs <-  prcomp(warrior_matrix)
+
+shaman_pcs <-  prcomp(shaman_matrix)
+
+rogue_pcs <-  prcomp(rogue_matrix)
+
+hunter_pcs <-  prcomp(hunter_matrix)
+
+warlock_pcs <-  prcomp(warlock_matrix)
+
+paladin_pcs <- prcomp(paladin_matrix)
+
+
+druid_pc_df <- druid_pcs$x %>%
+  as_tibble() %>%
+  mutate(
+    deckname = filter(dat, Class == "Druid")$deckname
+  )
+
+dh_pc_df <- dh_pcs$x %>%
+  as_tibble() %>%
+  mutate(
+    deckname = dat$deckname
+  )
+
+mage_pc_df <- mage_pcs$x %>%
+  as_tibble() %>%
+  mutate(
+     deckname = filter(dat, Class == "Mage")$deckname
+  )
+
+warrior_pc_df <- warrior_pcs$x %>%
+  as_tibble() %>%
+  mutate(
+    deckname = dat$deckname
+  )
+
+shaman_pc_df <- shaman_pcs$x %>%
+  as_tibble() %>%
+  mutate(
+    deckname = dat$deckname
+  )
+
+rogue_pc_df <- rogue_pcs$x %>%
+  as_tibble() %>%
+  mutate(
+    deckname = dat$deckname
+  )
+
+hunter_pc_df <- hunter_pcs$x %>%
+  as_tibble() %>%
+  mutate(
+    deckname = dat$deckname
+  )
+
+paladin_pc_df <- paladin_pcs$x %>%
+  as_tibble() %>%
+  mutate(
+    deckname = dat$deckname
+  )
+
+warlock_pc_df <- warlock_pcs$x %>%
+  as_tibble() %>%
+  mutate(
+    deckname = dat$deckname
+  )
 
 pc_df <- my_pcs$x %>%
   as_tibble() %>%
   mutate(
-    Class = dat$Class
-  ) 
-
+    deckname = dat$deckname
+  )
 ```
 
 
 ```{r}
-
-pc_df %>%
+mage_pc_df %>%
   ggplot() +
-    geom_boxplot(aes(x = Class, y = PC3))
+    geom_boxplot(aes(x = deckname, y = PC2))
 
-enframe(my_pcs$rotation[,"PC3"]) %>%
+enframe(my_pcs$rotation[,"PC2"]) %>%
   arrange(desc(value))
 
-enframe(my_pcs$rotation[,"PC3"]) %>%
+enframe(my_pcs$rotation[,"PC2"]) %>%
   arrange(value)
 ```
 
 
 ```{r}
-
 dat_split <- dat %>%
+  filter(Class == "Druid") %>% 
+  select(-Class) %>%
+  mutate(
+    deckname = as_factor(deckname)
+  ) %>%
+    vfold_cv(v = 5)
+as.data.frame(dat_split$splits[2])
+```
+
+
+```{r}
+class <- "Druid"
+  
+  dat_split <- dat %>%
+  filter(Class == class) %>%
+  mutate(
+    deckname = as_factor(deckname),
+    Class = as_factor(Class)
+  ) %>%
+    vfold_cv(v = 3)
+  data <- dat_split %>% 
+  mutate(df_ana = map(splits, analysis),
+         df_ass = map(splits, assessment))
+    
+  map_dfr((1:nrow(data)),~predictions(as.data.frame(data$df_ana[[.x]]),as.data.frame(data$df_ana[[.x]]),class))
+ 
+}
+```
+
+```{r tree}
+predictions_tree <- function(training,test,class){
+
+ctree <- decision_tree(tree_depth = 30, min_n = 2) %>%
+  set_engine("rpart") %>%
+  set_mode("classification")
+
+tree_fit <- ctree %>%
+  fit(deckname ~ ., training)
+
+my_preds <- tree_fit %>%
+  predict(new_data = test) %>% 
+  mutate(true_class = test$deckname) 
+
+
+accuracy <- my_preds %>% 
+  yardstick::accuracy(truth = true_class, 
+            estimate = .pred_class)
+prediction_accuracy <- tibble(Class = class,accuracy = accuracy[[1,3]], count = nrow(test))
+
+return(prediction_accuracy)
+
+}
+accuracy_table <- function(class){
+dat_split <- dat %>%
+  mutate(
+    deckname = as_factor(deckname),
+    Class = as_factor(class)
+  ) %>%
+  filter(Class == class) %>% 
+  initial_split(strata = deckname)
+
+dat_train <- training(dat_split)
+dat_test <- testing(dat_split)
+predictions_tree(dat_train,dat_test,class)
+}
+classes <- c("Druid", "Demon Hunter", "Mage", "Hunter", "Shaman", "Rogue", "Warrior", "Warlock", "Priest", "Paladin")
+classification_accuracy <- map_dfr(classes, ~accuracy(.x))
+sum(classification_accuracy$accuracy*classification_accuracy$count)/sum(classification_accuracy$count)
+```
+
+```{r knn}
+dat_split <- dat %>%
+  mutate(
+    deckname = as_factor(deckname),
+    Class = as_factor(Class)
+  ) %>%
+  filter(Class == class) %>% 
+  select(-Class)
+
+
+dat_split <- dat_split %>%
+  select(where( ~ !is.numeric(.x) || sum(.x, na.rm = TRUE) > 0)) %>%
+  initial_split(strata = deckname)
+
+dat_train <- training(dat_split)
+dat_test <- testing(dat_split)
+
+training <- dat_train
+test <- dat_test
+
+predictions_tree <- function(training,test,class){
+
+knn <- nearest_neighbor(neighbors = 5)%>%
+  set_engine("kknn") %>%
+  set_mode("classification")
+
+neighbor_fit <- knn %>%
+  fit(deckname ~ ., training)
+
+my_preds <- neighbor_fit %>%
+  predict(new_data = test) %>% 
+  mutate(true_class = test$deckname) 
+
+
+accuracy <- my_preds %>% 
+  yardstick::accuracy(truth = true_class, 
+            estimate = .pred_class)
+prediction_accuracy <- tibble(Class = class,accuracy = accuracy[[1,3]], count = nrow(test))
+
+return(prediction_accuracy)
+
+}
+accuracy_table <- function(class){
+dat_split <- dat %>%
+  mutate(
+    deckname = as_factor(deckname),
+    Class = as_factor(class)
+  ) %>%
+  filter(Class == class) %>% 
+  initial_split()
+
+dat_train <- training(dat_split)
+dat_test <- testing(dat_split)
+predictions_tree(dat_train,dat_test,class)
+}
+classes <- c("Druid", "Demon Hunter", "Mage", "Hunter", "Shaman", "Rogue", "Warrior", "Warlock", "Priest", "Paladin")
+classification_accuracy <- map_dfr(classes, ~accuracy(.x))
+sum(classification_accuracy$accuracy*classification_accuracy$count)/sum(classification_accuracy$count)
+```
+
+```{r}
+classify <- function(deckcode){
+  tree <- nearest_neighbor(neighbors =  5) %>%
+  set_engine("kknn") %>%
+  set_mode("classification") 
+  dummy <- get_dummys(deckcode,"deck")
+  tree_fit <- ctree %>%
+  fit(as.factor(deckname) ~ ., dat)
+  my_preds <- tree_fit %>%
+  predict(new_data = bind_rows(dat,dummy) %>% filter(deckname =="deck"))
+  
+  return(my_preds)
+
+}
+
+deckcode <- "AAECAZICHkD+AcQG5Ai5lAOvogPvogP0ogP8owPbpQP2rQP9rQOMrgORsQP5tQPougPsugPuugObzgP1zgOj0QPw1AOd2AOJ4AOK4AOV4AOk4QPR4QOL5AOM5AMAAA=="
+
+class <- classify("AAECAaIHBKeoA/vEA9nRA4TkAw20AY+XA/uaA/6aA/WnA62oA7euA865A9C5A6TRA+XTA+fdA4LkAwA=")
+class
+```
+
+
+```{r}
+set.seed(2)
+dat_split_1 <- dat %>%
+  select(-Class) %>%
+  mutate(
+    deckname = as_factor(deckname)
+  ) %>%
+  initial_split()
+dat_train <- training(dat_split_1)
+dat_test <- testing(dat_split_1)
+
+set.seed(3)
+dat_split_2 <- dat %>%
   select(-Class) %>%
   mutate(
     Class = as_factor(deckname)
   ) %>%
   initial_split()
+dat_train <- training(dat_split_2)
+dat_test <- testing(dat_split_2)
 
-dat_train <- training(dat_split)
-dat_test <- testing(dat_split)
-```
+set.seed(4)
+dat_split_3 <- dat %>%
+  select(-Class) %>%
+  mutate(
+    Class = as_factor(deckname)
+  ) %>%
+  initial_split()
+dat_train <- training(dat_split_3)
+dat_test <- testing(dat_split_3)
 
-
-
-```{r}
-ctree <- decision_tree() %>%
-  set_engine("rpart") %>%
-  set_mode("classification")
-```
-
-
-```{r}
-tree_fit <- ctree %>%
-  fit(Class ~ ., dat_train)
 ```
 
 ```{r}
+tree <- nearest_neighbor() %>%
+  set_engine("kknn") %>%
+  set_mode("classification") %>% 
+  translate()
+  dummy <- get_dummys(deckcode,"deck")
+  tree_fit <- tree %>%
+  fit(deckname ~ ., dat_train)
+
+  my_preds <- tree_fit %>%
+  predict(new_data = bind_rows(dat,dummy) %>% filter(deckname =="deck") %>% replace(is.na(0)))
+
 my_preds <- tree_fit %>%
   predict(new_data = dat_test) %>% 
-  mutate(true_class = dat_test$Class) 
+  mutate(true_class = dat_test$deckname) 
 
 
 my_preds %>% 
   accuracy(truth = true_class, 
             estimate = .pred_class)
 
-my_preds
+my_preds %>% 
+  filter(.pred_class != true_class)
 ```
 
+
+```{r}
+function(class){
+
+  dat_split <- dat %>%
+  filter(Class == class) %>% 
+  select(-Class) %>%
+  mutate(
+    deckname = as_factor(deckname)
+  ) %>%
+  vfold_cv(v = 10)
+
+dat_train <- training(dat_split)
+dat_test <- testing(dat_split)
+}
+```
 
