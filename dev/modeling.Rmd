@@ -201,21 +201,23 @@ as.data.frame(dat_split$splits[2])
 
 ```{r}
 class <- "Druid"
-  
+specify_class <- function(class){
+deck  
   dat_split <- dat %>%
   filter(Class == class) %>%
   mutate(
     deckname = as_factor(deckname),
     Class = as_factor(Class)
   ) %>%
-    vfold_cv(v = 3)
+    vfold_cv(v = 5)
   data <- dat_split %>% 
   mutate(df_ana = map(splits, analysis),
          df_ass = map(splits, assessment))
     
-  map_dfr((1:nrow(data)),~predictions(as.data.frame(data$df_ana[[.x]]),as.data.frame(data$df_ana[[.x]]),class))
+  map_dfr((1:nrow(data)),~predictions_tree(as.data.frame(data$df_ana[[.x]]),as.data.frame(data$df_ana[[.x]]),class))
  
 }
+
 ```
 
 ```{r tree}
@@ -245,6 +247,77 @@ accuracy_table <- function(class){
 dat_split <- dat %>%
   mutate(
     deckname = as_factor(deckname),
+    Class = as_factor(Class)
+  ) %>%
+  filter(Class == class) %>%
+    vfold_cv(v = 5, strata = deckname)
+  data <- dat_split %>% 
+  mutate(df_ana = map(splits, analysis),
+         df_ass = map(splits, assessment))
+
+predictions_tree(dat_train,dat_test,class)
+}
+classes <- c("Druid", "Demon Hunter", "Mage", "Hunter", "Shaman", "Rogue", "Warrior", "Warlock", "Priest", "Paladin")
+classification_accuracy <- map_dfr(classes, ~accuracy_table(.x))
+sum(classification_accuracy$accuracy*classification_accuracy$count)/sum(classification_accuracy$count)
+```
+
+```{r}
+accuracy_table <- function(class){
+dat_split <- dat %>%
+  mutate(
+    deckname = as_factor(deckname),
+    Class = as_factor(Class)
+  ) %>%
+  filter(!deckname %in% stuff$deckname) %>% 
+  filter(Class == class) %>% 
+  initial_split(strata = deckname)
+dat_train <- training(dat_split)
+dat_test <- testing(dat_split)
+predictions_tree(dat_train,dat_test,class)
+}
+classes <- c("Druid", "Demon Hunter", "Mage", "Hunter", "Shaman", "Rogue", "Warrior", "Warlock", "Priest", "Paladin")
+classification_accuracy <- map_dfr(classes, ~accuracy_table(.x))
+sum(classification_accuracy$accuracy*classification_accuracy$count)/sum(classification_accuracy$count)
+```
+
+```{r}
+accuracy_cv_table <- function(class){
+dat_split <- dat %>%
+  mutate(
+    deckname = as_factor(deckname),
+    Class = as_factor(Class)
+  ) %>%
+  filter(Class == class)%>%
+    vfold_cv(v = 5, strata = deckname)
+  data <- dat_split %>% 
+  mutate(df_ana = map(splits, analysis),
+         df_ass = map(splits, assessment))
+  cv_store <- c()
+  counts <- c()
+for(i in 1:nrow(data)){
+  preds <- predictions_tree(data$df_ana[[i]],data$df_ass[[i]],class)
+  cv_store[i] <- preds$accuracy
+  counts[i] <- nrow(data$df_ass[[i]])
+}
+  cv_store <- cv_store %>% unlist()
+  accuracy_table <- tibble(class, avg_test = mean(counts), min_acc=min(cv_store), max_acc=max(cv_store))
+  return(accuracy_table)
+}
+
+
+
+
+map_dfr(classes,~accuracy_cv_table(.x))
+
+
+```
+
+```{r}
+accuracy_table_tt <- function(class){
+dat_split <- dat %>%
+  mutate(
+    deckname = as_factor(deckname),
     Class = as_factor(class)
   ) %>%
   filter(Class == class) %>% 
@@ -254,9 +327,7 @@ dat_train <- training(dat_split)
 dat_test <- testing(dat_split)
 predictions_tree(dat_train,dat_test,class)
 }
-classes <- c("Druid", "Demon Hunter", "Mage", "Hunter", "Shaman", "Rogue", "Warrior", "Warlock", "Priest", "Paladin")
-classification_accuracy <- map_dfr(classes, ~accuracy(.x))
-sum(classification_accuracy$accuracy*classification_accuracy$count)/sum(classification_accuracy$count)
+map_dfr(classes,~accuracy_table_tt(.x))
 ```
 
 ```{r knn}
@@ -279,7 +350,7 @@ dat_test <- testing(dat_split)
 training <- dat_train
 test <- dat_test
 
-predictions_tree <- function(training,test,class){
+predictions_knn <- function(training,test,class){
 
 knn <- nearest_neighbor(neighbors = 5)%>%
   set_engine("kknn") %>%
