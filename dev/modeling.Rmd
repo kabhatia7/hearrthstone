@@ -207,12 +207,60 @@ prediction_accuracy <- tibble(Class = class,accuracy = accuracy[[1,3]], count = 
 return(prediction_accuracy)
 
 }
+predictions_tree_tune <- function(training,test,class,depth = 30, min_n = 2){
+
+ctree <- decision_tree(tree_depth = depth, min_n = n) %>%
+  set_engine("rpart") %>%
+  set_mode("classification")
+
+tree_fit <- ctree %>%
+  fit(deckname ~ ., training)
+
+my_preds <- tree_fit %>%
+  predict(new_data = test) %>% 
+  mutate(true_class = test$deckname) 
+
+
+accuracy <- my_preds %>% 
+  yardstick::accuracy(truth = true_class, 
+            estimate = .pred_class)
+prediction_accuracy <- tibble(Class = class,accuracy = accuracy[[1,3]], count = nrow(test))
+
+return(prediction_accuracy)
+
+}
 ```
 
 ```{r knn}
 predictions_knn <- function(training,test,class,pc = FALSE){
 
 knn <- nearest_neighbor(neighbors = 3)%>%
+  set_engine("kknn") %>%
+  set_mode("classification")
+if(pc){
+neighbor_fit <- knn %>%
+  fit(deckname ~ ., training)
+} else if(!pc){
+neighbor_fit <- knn %>%
+  fit(deckname ~ ., training)
+  
+}
+my_preds <- neighbor_fit %>%
+  predict(new_data = test) %>% 
+  mutate(true_class = test$deckname) 
+
+
+accuracy <- my_preds %>% 
+  yardstick::accuracy(truth = true_class, 
+            estimate = .pred_class)
+prediction_accuracy <- tibble(Class = class,accuracy = accuracy[[1,3]], count = nrow(test))
+
+return(prediction_accuracy)
+
+}
+predictions_knn <- function(training,test,class,pc = FALSE, k = 3){
+
+knn <- nearest_neighbor(neighbors = k)%>%
   set_engine("kknn") %>%
   set_mode("classification")
 if(pc){
@@ -278,6 +326,45 @@ for(i in 1:nrow(data)){
   accuracy_table <- tibble(class, avg_test = mean(counts), min_acc=min(cv_store), max_acc=max(cv_store))
   return(accuracy_table)
 }
+accuracy_cv_table_tune <- function(class,model = "tree", depth = 30, min_n = 2, k = NULL){
+dat_split <- dat %>%
+  mutate(
+    deckname = as_factor(deckname),
+    Class = as_factor(Class)
+  ) %>%
+  filter(Class == class) 
+
+if(model != "knn_pc"){
+  dat_split <-  dat_split %>% 
+      vfold_cv(v = 5, strata = deckname)
+} else if(model == "knn_pc"){
+    dat_split <- dat_split %>% 
+      pc_df(class) %>%  
+      select(1:10,deckname) %>% 
+      vfold_cv(v = 5, strata = deckname)
+  }
+  
+  data <- dat_split %>% 
+  mutate(df_ana = map(splits, analysis),
+         df_ass = map(splits, assessment))
+  cv_store <- c()
+  counts <- c()
+for(i in 1:nrow(data)){
+  if(model == "tree"){
+  preds <- predictions_tree_tune(data$df_ana[[i]],data$df_ass[[i]],class,depth = depth, min_n = min_n)
+  } else if(model == "knn" ){
+  preds <- predictions_knn_tune(data$df_ana[[i]],data$df_ass[[i]],class,FALSE, k = k)
+  }  else if(model == "knn_pc"){
+      preds <- predictions_knn_tune(data$df_ana[[i]],data$df_ass[[i]],class,TRUE, k = k )
+  }
+  cv_store[i] <- preds$accuracy
+  counts[i] <- nrow(data$df_ass[[i]])
+}
+  cv_store <- cv_store %>% 
+    unlist()
+  accuracy_table <- tibble(class, avg_test = mean(counts), min_acc=min(cv_store), max_acc=max(cv_store))
+  return(accuracy_table)
+}
 ```
 
 
@@ -291,7 +378,54 @@ knn_pc <- map_dfr(classes,~accuracy_cv_table(.x,"knn_pc"))
 tree
 knn
 knn_pc
-sum(classification_accuracy$accuracy*classification_accuracy$count)/sum(classification_accuracy$count)
+```
+
+
+```{r tune}
+tuning <- list(classes = c(), depth = c())
+for(i in 1:length(classes)){
+  tuning$classes[i] <- classes[i]
+  tuning$depth[i] <- c(5,10,15,20,30)
+}
+map_dfr(classes,~accuracy_cv_table_tune(.x,model = "tree",depth = map()))
+```
+
+
+```{r}
+counter <- 1
+accuracy_table <- tibble("class", "avg_test" , "min_acc", "max_acc") 
+for(i in c(5,10,15,20,25,30)){
+dat_split <- dat %>%
+  mutate(
+    deckname = as_factor(deckname),
+    Class = as_factor(Class)
+  ) %>%
+  filter(Class == class) 
+
+if(model != "knn_pc"){
+  dat_split <-  dat_split %>% 
+      vfold_cv(v = 5, strata = deckname)
+} else if(model == "knn_pc"){
+    dat_split <- dat_split %>% 
+      pc_df(class) %>%  
+      select(1:10,deckname) %>% 
+      vfold_cv(v = 5, strata = deckname)
+  }
+  
+  data <- dat_split %>% 
+  mutate(df_ana = map(splits, analysis),
+         df_ass = map(splits, assessment))
+  cv_store <- c()
+  counts <- c()
+for(i in 1:nrow(data)){
+  preds <- predictions_tree_tune(data$df_ana[[i]],data$df_ass[[i]],class, depth = i)
+  cv_store[i] <- preds$accuracy
+  counts[i] <- nrow(data$df_ass[[i]])
+}
+  cv_store <- cv_store %>% 
+    unlist()
+  accuracy_table <- tibble(class, avg_test = mean(counts), min_acc=min(cv_store), max_acc=max(cv_store))
+}
 ```
 
 ```{r knn}
