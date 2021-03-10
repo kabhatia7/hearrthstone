@@ -32,7 +32,9 @@ classes <- c("Druid", "Demon Hunter", "Mage", "Hunter", "Shaman", "Rogue", "Warr
 
 ```{r}
 
-
+dat %>% 
+  pc_df("Hunter") %>% 
+  select(1:10,deckname)
 ```
 
 ```{r}

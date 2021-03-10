@@ -79,4 +79,15 @@ future_imap_dfr(1:nrow(deckcodes),~get_dummys(deckcodes[[1]][.x],.x)) %>%
 write_csv(df_decks_dummy, here("dev" ,"data", "df_decks_dummy.csv"))
 ```
 
+```{r}
+df_lineup <- read_csv("lineup_details.csv")
+wider <- df_lineup %>% 
+  head() %>% 
+  pivot_wider(Player,
+              values_from = 4:5) 
+wider %>% 
+  mutate(`Deck Code_` = map_chr(`Deck Code_`,paste, collapse = "SPLIT")) %>% 
+  separate(`Deck Code_`,sep = "SPLIT", into = c("Deck1","Deck2","Deck3"))
+paste(wider$`Deck Code_`)
+```
 

@@ -15,7 +15,12 @@ library(here)
 library(shinythemes)
 library(shinyWidgets)
 
-dat <- read_csv(here("dev", "data", "df_decks_dummy.csv"))
+dat <- read_csv(here("dev", "data", "df_decks_dummy.csv"))  %>%
+  mutate_all(~replace_na(., 0)) %>%
+  filter(!str_detect(deckname," Deck"))
+
+lineups <- read_csv(here("dev", "lineup_details.csv"))
+
 #druid
 druid_model <- decision_tree(tree_depth = 30, min_n = 2) %>%
     set_engine("rpart") %>%
@@ -24,11 +29,11 @@ druid_fit <- druid_model %>%
     fit(as.factor(deckname) ~ ., dat %>% filter(Class == "Druid"))
 
 #dh
-dh_model <- decision_tree(tree_depth = 30, min_n = 2) %>%
-    set_engine("rpart") %>%
-    set_mode("classification")
+dh_model <- nearest_neighbor(neighbors = 3) %>%
+  set_engine("kknn") %>%
+  set_mode("classification")
 dh_fit <- dh_model %>%
-    fit(as.factor(deckname) ~ ., dat %>% filter(Class == "Demon Hunter"))
+  fit(as.factor(deckname) ~ ., dat %>% filter(Class == "Demon Hunter") %>% select(-Class))
 
 #mage
 mage_model <- decision_tree(tree_depth = 30, min_n = 2) %>%
@@ -113,7 +118,6 @@ classify <- function(deckcode){
       } else if(dummy$Class == "Shaman"){
           classification <- shaman_fit %>%
               predict(new_data = dummy)
-
       } else if(dummy$Class == "Rogue"){
           classification <- rogue_fit %>%
               predict(new_data = dummy)
@@ -137,7 +141,10 @@ classify <- function(deckcode){
       }
       classification <- as.character(classification$.pred_class)
       return(classification)
-  } else{
+  } else if (deckcode == ""){
+    classification <- "Enter a deck code"
+    return(classification)
+    }else{
       classification <- "Not a valid code"
       return(classification)
   }
@@ -152,15 +159,15 @@ ui <- fluidPage(
         src = "https://i.pinimg.com/originals/13/dd/f3/13ddf355dedf14439696c80b3c2c81af.jpg"
     ),
     # Application title
-    titlePanel("Hearthstone Classification"),
+    titlePanel("Hearthstone Deck Classifier"),
 
 
 
         # Show a plot of the generated distribution
         mainPanel(
             textInput("DeckCode",
-                            "DeckCode:",
-                            value = "Enter Code Here"),
+                            "Deck Code:",
+                            value = ""),
             verbatimTextOutput("classify")
         )
     )
