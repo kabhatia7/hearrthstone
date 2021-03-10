@@ -45,6 +45,10 @@ remDr$close()
 write_csv(decks, here("dev" ,"data", "df_decks.csv"))
 ```
 
+```{r}
+x <- get_decks("AAECAZ7hAwLQzgPZ0QMOuwK/A6sE5gSWBfusA/OvA/jMA4XNA83OA6TRA/fRA/jdA4fkAwA=")
+x$class$name == "Mage"
+```
 
 
 ```{r}

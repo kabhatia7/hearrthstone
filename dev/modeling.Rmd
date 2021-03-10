@@ -23,7 +23,11 @@ card_names <- names(dat)[-c(1,2)]
 
 ```{r}
 dat <- dat %>%
-    mutate_all(~replace_na(., 0)) 
+    mutate_all(~replace_na(., 0)) %>% 
+  filter(!str_detect(deckname," Deck"))
+  x <-  %>% 
+  group_by(deckname) %>% 
+  summarise(n())
 classes <- c("Druid", "Demon Hunter", "Mage", "Hunter", "Shaman", "Rogue", "Warrior", "Warlock", "Priest", "Paladin")
 ```
 
@@ -207,28 +211,7 @@ prediction_accuracy <- tibble(Class = class,accuracy = accuracy[[1,3]], count = 
 return(prediction_accuracy)
 
 }
-predictions_tree_tune <- function(training,test,class,depth = 30, min_n = 2){
 
-ctree <- decision_tree(tree_depth = depth, min_n = n) %>%
-  set_engine("rpart") %>%
-  set_mode("classification")
-
-tree_fit <- ctree %>%
-  fit(deckname ~ ., training)
-
-my_preds <- tree_fit %>%
-  predict(new_data = test) %>% 
-  mutate(true_class = test$deckname) 
-
-
-accuracy <- my_preds %>% 
-  yardstick::accuracy(truth = true_class, 
-            estimate = .pred_class)
-prediction_accuracy <- tibble(Class = class,accuracy = accuracy[[1,3]], count = nrow(test))
-
-return(prediction_accuracy)
-
-}
 ```
 
 ```{r knn}
@@ -258,32 +241,7 @@ prediction_accuracy <- tibble(Class = class,accuracy = accuracy[[1,3]], count = 
 return(prediction_accuracy)
 
 }
-predictions_knn <- function(training,test,class,pc = FALSE, k = 3){
 
-knn <- nearest_neighbor(neighbors = k)%>%
-  set_engine("kknn") %>%
-  set_mode("classification")
-if(pc){
-neighbor_fit <- knn %>%
-  fit(deckname ~ ., training)
-} else if(!pc){
-neighbor_fit <- knn %>%
-  fit(deckname ~ ., training)
-  
-}
-my_preds <- neighbor_fit %>%
-  predict(new_data = test) %>% 
-  mutate(true_class = test$deckname) 
-
-
-accuracy <- my_preds %>% 
-  yardstick::accuracy(truth = true_class, 
-            estimate = .pred_class)
-prediction_accuracy <- tibble(Class = class,accuracy = accuracy[[1,3]], count = nrow(test))
-
-return(prediction_accuracy)
-
-}
 ```
 
 ```{r accuracy}
@@ -323,7 +281,12 @@ for(i in 1:nrow(data)){
 }
   cv_store <- cv_store %>% 
     unlist()
-  accuracy_table <- tibble(class, avg_test = mean(counts), min_acc=min(cv_store), max_acc=max(cv_store))
+  accuracy_table <- tibble(class, 
+                           avg_test = mean(counts), 
+                           min_acc=min(cv_store), 
+                           max_acc=max(cv_store), 
+                           mean_acc = mean(cv_store), 
+                           sd_acc = sd(cv_store))
   return(accuracy_table)
 }
 accuracy_cv_table_tune <- function(class,model = "tree", depth = 30, min_n = 2, k = NULL){
@@ -362,7 +325,12 @@ for(i in 1:nrow(data)){
 }
   cv_store <- cv_store %>% 
     unlist()
-  accuracy_table <- tibble(class, avg_test = mean(counts), min_acc=min(cv_store), max_acc=max(cv_store))
+  accuracy_table <- tibble(class, 
+                           avg_test = mean(counts), 
+                           min_acc=min(cv_store), 
+                           max_acc=max(cv_store), 
+                           mean_acc = mean(cv_store), 
+                           sd_acc = sd(cv_store))
   return(accuracy_table)
 }
 ```
@@ -380,14 +348,86 @@ knn
 knn_pc
 ```
 
-
-```{r tune}
-tuning <- list(classes = c(), depth = c())
+```{r tune tree}
+set.seed(300)
+tune_classes_tree <- list()
 for(i in 1:length(classes)){
-  tuning$classes[i] <- classes[i]
-  tuning$depth[i] <- c(5,10,15,20,30)
+ 
+ctree <- decision_tree(tree_depth = tune(), min_n = tune()) %>%
+  set_engine("rpart") %>%
+  set_mode("classification")
+tree_grid <- grid_regular(min_n(),
+                          tree_depth(),
+                          levels = 5) %>% 
+                          filter(tree_depth > 8)
+colnames(dat) <- make.names(colnames(dat))
+folds <- vfold_cv(dat %>% filter(Class == classes[i]) %>% select(-Class) %>% mutate(deckname = as.factor(deckname)),v = 3, strata = deckname) 
+
+tree_wf <- workflow() %>% 
+  add_model(ctree) %>%
+  add_formula(deckname ~ .)
+
+tree_res <- 
+  tree_wf %>% 
+  tune_grid(
+    resamples = folds,
+    grid = tree_grid
+  )
+
+tune_classes_tree[[i]]<-  tree_res %>% 
+  collect_metrics()
 }
-map_dfr(classes,~accuracy_cv_table_tune(.x,model = "tree",depth = map()))
+names(tune_classes_tree) <- classes 
+```
+
+```{r tune knn}
+set.seed(300)
+tune_classes_kknn <- list()
+for(i in 1:length(classes)){
+knn_tune <- nearest_neighbor( neighbors = tune()) %>%
+  set_engine("kknn") %>%
+  set_mode("classification")
+kknn_grid <- grid_regular(neighbors(),
+                          levels = 5)
+colnames(dat) <- make.names(colnames(dat))
+folds <- vfold_cv(dat %>% filter(Class == classes[i]) %>% select(-Class) %>% mutate(deckname = as.factor(deckname)), v = 3,strata = deckname)
+
+knn_wf <- workflow() %>% 
+  add_model(knn_tune) %>%
+  add_formula(deckname ~ .)
+
+kknn_res <- 
+  knn_wf %>% 
+  tune_grid(
+    resamples = folds,
+    grid = kknn_grid
+  )
+
+tune_classes_kknn[[i]] <-  kknn_res %>% 
+  collect_metrics()
+
+}
+names(tune_classes_kknn) <- classes
+
+```
+```{r}
+store_plots_tree <- list() 
+for (i in 1:length(classes)){
+plot <- tune_classes_tree[[classes[i]]]%>% 
+  filter(.metric == 'accuracy') %>% 
+    ggplot(aes(x= min_n, y = mean, color = as.factor(tree_depth))) +
+  geom_line(size = 1.5, alpha = 0.6) +
+  geom_point(size = 2) +
+  facet_wrap(~ .metric, scales = "free", nrow = 2)
+store_plots_tree[[i]] <- plot 
+}
+names(store_plots_tree) <- classes 
+```
+
+```{r}
+dat_split %>% 
+      pc_df(Druid) %>%  
+      select(1:10,deckname) 
 ```
 
 
@@ -488,7 +528,150 @@ class <- classify("AAECAaIHBKeoA/vEA9nRA4TkAw20AY+XA/uaA/6aA/WnA62oA7euA865A9C5A
 class
 ```
 
+```{r class models}
+#druid
+druid_model <- decision_tree(tree_depth = 30, min_n = 2) %>%
+  set_engine("rpart") %>%
+  set_mode("classification")
+druid_fit <- druid_model %>%
+  fit(as.factor(deckname) ~ ., dat %>% filter(Class == "Druid"))
+
+#dh
+dh_model <- nearest_neighbor(neighbors = 3) %>%
+  set_engine("kknn") %>%
+  set_mode("classification")
+dh_fit <- dh_model %>%
+  fit(as.factor(deckname) ~ ., dat %>% filter(Class == "Demon Hunter") %>% select(-Class))
+
+#mage
+mage_model <- decision_tree(tree_depth = 15, min_n = 2) %>%
+  set_engine("rpart") %>%
+  set_mode("classification")
+mage_fit <- mage_model %>%
+  fit(as.factor(deckname) ~ ., dat %>% filter(Class == "Mage"))
+
+#hunter
+hunter_model <- decision_tree(tree_depth = 30, min_n = 2) %>%
+  set_engine("rpart") %>%
+  set_mode("classification")
+hunter_fit <- hunter_model %>%
+  fit(as.factor(deckname) ~ ., dat %>% filter(Class == "Hunter"))
+
+#shaman
+shaman_model <- decision_tree(tree_depth = 30, min_n = 2) %>%
+  set_engine("rpart") %>%
+  set_mode("classification")
+shaman_fit <- shaman_model %>%
+  fit(as.factor(deckname) ~ ., dat %>% filter(Class == "Shaman"))
+
+#rogue
+rogue_model <- decision_tree(tree_depth = 30, min_n = 2) %>%
+  set_engine("rpart") %>%
+  set_mode("classification")
+rogue_fit <- rogue_model %>%
+  fit(as.factor(deckname) ~ ., dat %>% filter(Class == "Rogue"))
+
+#warrior
+warrior_model <- decision_tree(tree_depth = 30, min_n = 2) %>%
+  set_engine("rpart") %>%
+  set_mode("classification")
+warrior_fit <- warrior_model %>%
+  fit(as.factor(deckname) ~ ., dat %>% filter(Class == "Warrior"))
+
+#warlock
+warlock_model <- decision_tree(tree_depth = 30, min_n = 2) %>%
+  set_engine("rpart") %>%
+  set_mode("classification")
+warlock_fit <- warlock_model %>%
+  fit(as.factor(deckname) ~ ., dat %>% filter(Class == "Warlock"))
+
+#priest
+
+priest_model <- decision_tree(tree_depth = 30, min_n = 2) %>%
+  set_engine("rpart") %>%
+  set_mode("classification")
+priest_fit <- priest_model %>%
+  fit(as.factor(deckname) ~ ., dat %>% filter(Class == "Priest"))
+
+#paladin
+
+paladin_model <- decision_tree(tree_depth = 30, min_n = 2) %>%
+  set_engine("rpart") %>%
+  set_mode("classification")
+paladin_fit <- paladin_model %>%
+  fit(as.factor(deckname) ~ ., dat %>% filter(Class == "Paladin"))
 
 
 
+```
+
+
+```{r class classify functions}
+classify <- function(deckcode){
+  dummy <- get_dummys(deckcode,"deck")
+  dummy <- bind_rows(dat %>% filter(Class == dummy$Class),dummy) %>% filter(deckname =="deck") %>% 
+    mutate_all(~replace_na(., 0)) 
+  if(class$class$name =="Druid"){
+    classification <- druid_fit %>%
+      predict(new_data = dummy) 
+     
+  } else if(class$class$name =="Demon Hunter"){
+    classification <- dh_fit %>%
+      predict(new_data = dummy) 
+    
+  } else if(class$class$name == "Mage"){
+    classification <- mage_fit %>%
+      predict(new_data = dummy) 
+    
+  } else if(class$class$name == "Hunter"){
+    classification <- hunter_fit %>%
+      predict(new_data = dummy) 
+  } else if(class$class$name == "Shaman"){
+    classification <- shaman_fit %>%
+      predict(new_data = dummy) 
+    
+  } else if(class$class$name == "Rogue"){
+    classification <- rogue_fit %>%
+      predict(new_data = dummy) 
+    
+  } else if(class$class$name == "Warrior"){
+    
+    classification <- warrior_fit %>%
+      predict(new_data = dummy) 
+    
+  } else if(class$class$name == "Warlock"){
+    classification <- warlock_fit %>%
+      predict(new_data = dummy) 
+    
+  }else if(class$class$name == "Priest"){
+    classification <- priest_fit %>%
+      predict(new_data = dummy) 
+    
+  }else if(class$class$name == "Paladin"){
+    classification <- paladin_fit %>%
+      predict(new_data = dummy) 
+  } 
+  
+  return(classification)
+
+}
+```
+
+
+```{r}
+classify("AAECAea5AwAP/acD+a4Di7oD4LwD174D3r4D98gD8skD3MwDgtADxtEDzd0Dz90D2d4DyuMDAA==")
+dummy <- get_dummys("AAECAf0GBsUE2wbcBvqkA/zeA/bjAwzVA4oHoaEDrMsD7NEDzNIDzdIDxt4D5uED9eMD+OMDkuQDAA==","deck")
+deckcode <- "AAECAea5AwAP/acD+a4Di7oD4LwD174D3r4D98gD8skD3MwDgtADxtEDzd0Dz90D2d4DyuMDAA=="
+  dummy <- get_dummys(deckcode,"deck")
+  dummy <- bind_rows(dat %>% filter(Class == dummy$Class),dummy) %>% filter(deckname =="deck") %>% 
+    mutate_all(~replace_na(., 0)) 
+```
+
+
+```{r}
+dat %>% 
+  filter(Class == "Warlock") %>% 
+  group_by(deckname) %>%
+  summarise(count = n())
+```
 
