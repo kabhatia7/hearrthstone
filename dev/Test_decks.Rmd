@@ -50,6 +50,13 @@ x <- get_decks("AAECAZ7hAwLQzgPZ0QMOuwK/A6sE5gSWBfusA/OvA/jMA4XNA83OA6TRA/fRA/jd
 x$class$name == "Mage"
 ```
 
+```{r}
+data <- read_csv(here("dev","data","df_decks.csv"))
+data %>% 
+  mutate(first_3 = str_sub(deckcode,1,3)) %>% 
+  group_by(first_3) %>% 
+  summarise(n())
+```
 
 ```{r}
 df_decks_dummy <- 

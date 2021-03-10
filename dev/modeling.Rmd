@@ -25,9 +25,7 @@ card_names <- names(dat)[-c(1,2)]
 dat <- dat %>%
     mutate_all(~replace_na(., 0)) %>% 
   filter(!str_detect(deckname," Deck"))
-  x <-  %>% 
-  group_by(deckname) %>% 
-  summarise(n())
+ 
 classes <- c("Druid", "Demon Hunter", "Mage", "Hunter", "Shaman", "Rogue", "Warrior", "Warlock", "Priest", "Paladin")
 ```
 
@@ -343,9 +341,10 @@ knn_pc <- map_dfr(classes,~accuracy_cv_table(.x,"knn_pc"))
 ```
 
 ```{r}
-tree
-knn
-knn_pc
+bind_rows(tree %>%  mutate(model_type = "tree"),
+knn %>%  mutate(model_type = "knn"),
+knn_pc %>%  mutate(model_type = "knn_pc"))
+
 ```
 
 ```{r tune tree}
@@ -609,49 +608,51 @@ paladin_fit <- paladin_model %>%
 ```{r class classify functions}
 classify <- function(deckcode){
   dummy <- get_dummys(deckcode,"deck")
-  dummy <- bind_rows(dat %>% filter(Class == dummy$Class),dummy) %>% filter(deckname =="deck") %>% 
+  dummy <- bind_rows(dat %>% 
+                       filter(Class == dummy$Class),dummy) %>% 
+    filter(deckname =="deck") %>% 
     mutate_all(~replace_na(., 0)) 
-  if(class$class$name =="Druid"){
+  if(dummy$Class =="Druid"){
     classification <- druid_fit %>%
       predict(new_data = dummy) 
      
-  } else if(class$class$name =="Demon Hunter"){
+  } else if(dummy$Class =="Demon Hunter"){
     classification <- dh_fit %>%
       predict(new_data = dummy) 
     
-  } else if(class$class$name == "Mage"){
+  } else if(dummy$Class == "Mage"){
     classification <- mage_fit %>%
       predict(new_data = dummy) 
     
-  } else if(class$class$name == "Hunter"){
+  } else if(dummy$Class == "Hunter"){
     classification <- hunter_fit %>%
       predict(new_data = dummy) 
-  } else if(class$class$name == "Shaman"){
+  } else if(dummy$Class == "Shaman"){
     classification <- shaman_fit %>%
       predict(new_data = dummy) 
     
-  } else if(class$class$name == "Rogue"){
+  } else if(dummy$Class == "Rogue"){
     classification <- rogue_fit %>%
       predict(new_data = dummy) 
     
-  } else if(class$class$name == "Warrior"){
+  } else if(dummy$Class == "Warrior"){
     
     classification <- warrior_fit %>%
       predict(new_data = dummy) 
     
-  } else if(class$class$name == "Warlock"){
+  } else if(dummy$Class == "Warlock"){
     classification <- warlock_fit %>%
       predict(new_data = dummy) 
     
-  }else if(class$class$name == "Priest"){
+  }else if(dummy$Class == "Priest"){
     classification <- priest_fit %>%
       predict(new_data = dummy) 
     
-  }else if(class$class$name == "Paladin"){
+  }else if(dummy$Class == "Paladin"){
     classification <- paladin_fit %>%
       predict(new_data = dummy) 
   } 
-  
+  classification <- as.character(classification$.pred_class)
   return(classification)
 
 }
