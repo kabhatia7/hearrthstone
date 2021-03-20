@@ -354,13 +354,13 @@ set.seed(300)
 tune_classes_tree <- list()
 for(i in 1:length(classes)){
  
-ctree <- decision_tree(tree_depth = tune(), min_n = tune()) %>%
+ctree <- decision_tree(tree_depth = 30, min_n = tune(), cost_complexity = tune()) %>%
   set_engine("rpart") %>%
   set_mode("classification")
 tree_grid <- grid_regular(min_n(),
-                          tree_depth(),
-                          levels = 5) %>% 
-                          filter(tree_depth > 8)
+                          cost_complexity(),
+                          levels = 5)
+
 colnames(dat) <- make.names(colnames(dat))
 folds <- vfold_cv(dat %>% filter(Class == classes[i]) %>% select(-Class) %>% mutate(deckname = as.factor(deckname)),v = 3, strata = deckname) 
 
@@ -376,7 +376,8 @@ tree_res <-
   )
 
 tune_classes_tree[[i]]<-  tree_res %>% 
-  collect_metrics()
+  collect_metrics() %>% 
+  mutate(model_type = "tree")
 }
 names(tune_classes_tree) <- classes 
 ```
@@ -405,12 +406,70 @@ kknn_res <-
   )
 
 tune_classes_kknn[[i]] <-  kknn_res %>% 
-  collect_metrics()
+  collect_metrics() %>% 
+  mutate(model_type = "kknn")
 
 }
 names(tune_classes_kknn) <- classes
-
+tune_classes_kknn[["Demon Hunter"]] 
 ```
+```{r}
+set.seed(300)
+tune_classes_PCA <- list()
+for(i in 1:length(classes)){
+knn_tune <- nearest_neighbor( neighbors = tune()) %>%
+  set_engine("kknn") %>%
+  set_mode("classification")
+kknn_grid <- grid_regular(neighbors(),
+                          levels = 5)
+colnames(dat) <- make.names(colnames(dat))
+folds <- vfold_cv(dat %>% pc_df(classes[i]) %>%  
+      select(1:10,deckname) %>%  mutate(deckname = as.factor(deckname)), v = 3,strata = deckname)
+
+knn_wf <- workflow() %>% 
+  add_model(knn_tune) %>%
+  add_formula(deckname ~ .)
+
+kknn_res <- 
+  knn_wf %>% 
+  tune_grid(
+    resamples = folds,
+    grid = kknn_grid
+  )
+
+tune_classes_PCA[[i]] <-  kknn_res %>% 
+  collect_metrics() %>% 
+  mutate(model_type = "PCA")
+
+}
+names(tune_classes_PCA) <- classes
+```
+
+```{r}
+dh_acc <- bind_rows(tune_classes_tree[["Demon Hunter"]], tune_classes_kknn[["Demon Hunter"]], tune_classes_PCA[["Demon Hunter"]])
+druid_acc <-bind_rows(tune_classes_tree[["Druid"]], tune_classes_kknn[["Druid"]], tune_classes_PCA[["Druid"]])
+hunter_acc <- bind_rows(tune_classes_tree[["Hunter"]], tune_classes_kknn[["Hunter"]], tune_classes_PCA[["Hunter"]])
+mage_acc <- bind_rows(tune_classes_tree[["Mage"]], tune_classes_kknn[["Mage"]], tune_classes_PCA[["Mage"]])
+paladin_acc <- bind_rows(tune_classes_tree[["Paladin"]], tune_classes_kknn[["Paladin"]], tune_classes_PCA[["Paladin"]])
+priest_acc <- bind_rows(tune_classes_tree[["Priest"]], tune_classes_kknn[["Priest"]], tune_classes_PCA[["Priest"]])
+rogue_acc <- bind_rows(tune_classes_tree[["Rogue"]], tune_classes_kknn[["Rogue"]], tune_classes_PCA[["Rogue"]])
+warlock_acc <- bind_rows(tune_classes_tree[["Warlock"]], tune_classes_kknn[["Warlock"]], tune_classes_PCA[["Warlock"]])
+warrior_acc <- bind_rows(tune_classes_tree[["Warrior"]], tune_classes_kknn[["Warrior"]], tune_classes_PCA[["Warrior"]])
+shaman_acc <- bind_rows(tune_classes_tree[["Shaman"]], tune_classes_kknn[["Shaman"]], tune_classes_PCA[["Shaman"]])
+```
+```{r}
+dh_acc %>% filter(model_type != "PCA") %>% filter( .metric == "accuracy") %>%  filter(mean == max(mean)) %>% filter(model_type != "PCA")
+druid_acc %>% filter(model_type != "PCA") %>%  filter( .metric == "accuracy") %>% filter(mean == max(mean) ) %>% filter(model_type != "PCA")
+hunter_acc %>% filter(model_type != "PCA") %>% filter( .metric == "accuracy") %>% filter(mean == max(mean) ) %>% filter(model_type != "PCA")
+warlock_acc %>% filter(model_type != "PCA") %>% filter( .metric == "accuracy") %>% filter(mean == max(mean) )%>% filter(model_type != "PCA")
+mage_acc %>% filter(model_type != "PCA") %>% filter( .metric == "accuracy") %>% filter(mean == max(mean) )%>% filter(model_type != "PCA")
+paladin_acc %>% filter(model_type != "PCA") %>% filter( .metric == "accuracy") %>% filter(mean == max(mean) )%>% filter(model_type != "PCA")
+priest_acc %>% filter(model_type != "PCA") %>% filter( .metric == "accuracy") %>% filter(mean == max(mean) )%>% filter(model_type != "PCA")
+rogue_acc  %>% filter(model_type != "PCA") %>% filter( .metric == "accuracy") %>% filter(mean == max(mean) )%>% filter(model_type != "PCA")
+warrior_acc  %>% filter(model_type != "PCA") %>% filter( .metric == "accuracy") %>% filter(mean == max(mean) )%>% filter(model_type != "PCA")
+shaman_acc  %>% filter(model_type != "PCA") %>% filter( .metric == "accuracy") %>% filter(mean == max(mean) )%>% filter(model_type != "PCA")
+```
+
 ```{r}
 store_plots_tree <- list() 
 for (i in 1:length(classes)){
@@ -676,5 +735,106 @@ dat %>%
   filter(Class == "Warlock") %>% 
   group_by(deckname) %>%
   summarise(count = n())
+```
+
+
+```{r}
+sleepy_classify <- function(deckcode){
+  Sys.sleep(.5)
+  classify(deckcode)
+}
+df_lineup <- read_csv("lineup_details.csv")
+wider <- df_lineup %>% 
+  filter(Tournament == 1) %>% 
+  mutate(Date = as.character(Date)) %>% 
+  pivot_wider(c(Player,Tournament),
+              values_from = 4:5) %>%
+  head(30)
+
+
+tournament_1_lineups <- wider %>% 
+  mutate(`Deck Code_` = map_chr(`Deck Code_`,
+                                paste, 
+                                collapse = "SPLIT"), Date_ = map_chr(`Date_`,unique)) %>% 
+  separate(`Deck Code_`,sep = "SPLIT", into = c("Deck1","Deck2","Deck3")) %>% 
+  mutate(Date_ = as.Date(Date_)) %>% 
+  rename(Date = Date_) %>% 
+  mutate(`Deck 1 Pred` = map_chr(Deck1,sleepy_classify))
+
+
+tournament_1_lineups_deck_2 <- 
+  tournament_1_lineups %>%
+  mutate(`Deck 2 Pred` = map_chr(Deck2,sleepy_classify))
+Sys.sleep(5)
+tournament_1_lineups_deck_3 <-   
+tournament_1_lineups_deck_2 %>% 
+  mutate(`Deck 3 Pred` = map_chr(Deck3,sleepy_classify))
+
+write_csv(tournament_1_lineups_deck_3, here("dev" ,"data", "lineupdecks.csv"))
+
+```
+
+```{r}
+mage_model <- nearest_neighbor(neighbors = 5) %>%
+  set_engine("kknn") %>%
+  set_mode("classification")
+mage_fit <- mage_model %>%
+    fit(as.factor(deckname) ~ ., dat %>% filter(Class == "Mage")
+      #  %>% pc_df("Mage") %>% select(1:10,deckname)
+      %>% select(-Class)
+        )
+deckcode <- "AAECAf0EAsW4A5LLAw6rBLQE5gSWBaQHvAifmwP/nQPBuAPgzAPHzgPNzgP30QOF5AMA"
+  dummy <- get_dummys(deckcode,"deck")
+      dummy <- bind_rows(dat %>%
+                             filter(Class == dummy$Class),dummy) %>%
+     #   pc_df("Mage") %>% 
+          filter(deckname =="deck") 
+    classification <- mage_fit %>%
+              predict(new_data = dummy)
+```
+
+
+```{r}
+deckcode <- "AAECAea5AwbMugPevgPaxgPyyQP21gPF3QMM/acD+a4D4LwD2cYD98gD3MwD+84DgtADz90DyuMD8+MDkOQDAA=="  
+dummy <- get_dummys(deckcode,"deck")
+      dummy <- bind_rows(dat %>%
+                             filter(Class == dummy$Class),dummy) %>%
+     #   pc_df("Mage") %>% 
+          filter(deckname =="deck") 
+
+paladin_model <- nea(tree_depth = 30, min_n = 2) %>%
+    set_engine("rpart") %>%
+    set_mode("classification")
+paladin_fit <- paladin_model %>%
+    fit(as.factor(deckname) ~ ., dat %>% filter(Class == "Paladin"))
+```
+
+```{r}
+### Mozaki OTK Mage
+# Class: Mage
+# Format: Standard
+# Year of the Phoenix
+#
+# 2x (1) Ray of Frost
+# 2x (1) Primordial Studies
+# 2x (1) Mirror Image
+# 2x (1) Magic Trick
+# 2x (1) Devolving Missiles
+# 2x (1) Brain Freeze
+# 2x (1) Arcane Missiles
+# 2x (2) Sorcerer's Apprentice
+# 2x (2) Incanter's Flow
+# 2x (2) Frostbolt
+# 1x (2) Evocation
+# 2x (2) Cram Session
+# 2x (2) Conjure Mana Biscuit
+# 2x (3) Arcane Intellect
+# 1x (5) Mozaki, Master Duelist
+# 2x (6) Gadgetzan Auctioneer
+#
+AAECAf0EAsW4A5LLAw6rBLQE5gSWBaQHvAifmwP/nQPBuAPgzAPHzgPNzgP30QOF5AMA
+# To use this deck, copy it to your clipboard and create a new deck in Hearthstone
+# Find this deck on https://hsreplay.net/decks/tVtyquZMyjdsgLrkmUv8zd/
+
 ```
 
